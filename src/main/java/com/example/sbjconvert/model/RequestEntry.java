@@ -5,8 +5,7 @@ import lombok.AllArgsConstructor;
 
 import java.math.BigDecimal;
 
-//@JsonPropertyOrder({"uuid", "id", "name", "likes", "transport", "avgSpeed", "topSpeed"})
-@AllArgsConstructor
+@JsonPropertyOrder({"uuid", "id", "name", "likes", "transport", "avgSpeed", "topSpeed"})
 public class RequestEntry {
     public String uuid;
     public String id;

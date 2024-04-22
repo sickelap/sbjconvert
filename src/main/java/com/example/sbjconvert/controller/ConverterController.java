@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -35,8 +36,14 @@ public class ConverterController {
                 .with(schema)
                 .readValues(body);
 
-        return iterator.readAll().stream()
-                .map(item -> new ResponseEntry(item.name, item.transport, item.topSpeed))
-                .toList();
+        var result = new ArrayList<ResponseEntry>();
+        while (iterator.hasNextValue()) {
+            var item = iterator.next();
+            if (null == item.name || null == item.transport || null == item.topSpeed) {
+                continue;
+            }
+            result.add(new ResponseEntry(item.name, item.transport, item.topSpeed));
+        }
+        return result;
     }
 }
