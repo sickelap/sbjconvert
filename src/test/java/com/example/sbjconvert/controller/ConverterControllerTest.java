@@ -1,23 +1,24 @@
 package com.example.sbjconvert.controller;
 
+import com.example.sbjconvert.configuration.ValidationConfiguration;
 import com.example.sbjconvert.model.ResponseEntry;
+import com.example.sbjconvert.service.Converter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.core.io.ResourceLoader;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
-import java.nio.charset.Charset;
 import java.util.List;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ConverterController.class)
 class ConverterControllerTest {
@@ -27,6 +28,12 @@ class ConverterControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockBean
+    private Converter converter;
+
+    @MockBean
+    private ValidationConfiguration configuration;
 
     @Test
     void shouldReturnInvalidRequestForNoInput() throws Exception {
@@ -50,16 +57,22 @@ class ConverterControllerTest {
                 .andDo(print());
     }
 
-    @Test
-    void shouldReturnCorrectNumberOfRecords() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldReturnCorrectNumberOfRecords(boolean validationEnabled) throws Exception {
+        var payload = String.join("\n", getValidRequestLines());
+        var responseContent = getValidResponseEntries();
+        when(configuration.isValidationEnabled()).thenReturn(validationEnabled);
+        when(converter.convert(payload, validationEnabled)).thenReturn(responseContent);
+
         var request = post("/convert")
                 .contentType(MediaType.TEXT_PLAIN)
-                .content(String.join("\n", getValidRequestLines()));
+                .content(payload);
 
         mvc.perform(request)
                 .andExpect(status().is2xxSuccessful())
                 .andExpect(jsonPath("$.size()").value(getValidRequestLines().size()))
-                .andExpect(content().json(objectMapper.writeValueAsString(getValidResponseEntries())))
+                .andExpect(content().json(objectMapper.writeValueAsString(responseContent)))
                 .andDo(print());
     }
 
@@ -73,9 +86,9 @@ class ConverterControllerTest {
 
     private List<ResponseEntry> getValidResponseEntries() {
         return List.of(
-                new ResponseEntry("name1", "transport1", BigDecimal.valueOf(2.22)),
-                new ResponseEntry("name2", "transport2", BigDecimal.valueOf(4.44)),
-                new ResponseEntry("name3", "transport3", BigDecimal.valueOf(6.66))
+                new ResponseEntry("name1", "transport1", 2.22),
+                new ResponseEntry("name2", "transport2", 4.44),
+                new ResponseEntry("name3", "transport3", 6.66)
         );
     }
 }
