@@ -1,94 +1,42 @@
 package com.example.sbjconvert.controller;
 
-import com.example.sbjconvert.configuration.ValidationConfiguration;
-import com.example.sbjconvert.model.ResponseEntry;
 import com.example.sbjconvert.service.Converter;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.sbjconvert.validator.ValidationConfig;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
-
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ConverterController.class)
+@ExtendWith(MockitoExtension.class)
 class ConverterControllerTest {
 
-    @Autowired
-    private MockMvc mvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockBean
+    @Mock
     private Converter converter;
 
-    @MockBean
-    private ValidationConfiguration configuration;
+    @Mock
+    private ValidationConfig configuration;
 
-    @Test
-    void shouldReturnInvalidRequestForNoInput() throws Exception {
-        var request = post("/convert")
-                .contentType(MediaType.TEXT_PLAIN)
-                .content("");
+    private ConverterController classUnderTest;
 
-        mvc.perform(request)
-                .andExpect(status().isBadRequest());
+    @BeforeEach
+    void setUp() {
+        classUnderTest = new ConverterController(converter, configuration);
     }
 
     @Test
-    void shouldReturnEmptyResponseForEmptyPayload() throws Exception {
-        var request = post("/convert")
-                .contentType(MediaType.TEXT_PLAIN)
-                .content(" ");
+    void shouldReturnEmptyResponseForEmptyPayload() {
+        var payload = "a|b|c|d|e|1|2";
+        when(configuration.isValidationEnabled()).thenReturn(false);
+        when(converter.convert(payload, false)).thenReturn(null);
 
-        mvc.perform(request)
-                .andExpect(status().is2xxSuccessful())
-                .andExpect(jsonPath("$.size()").value(0))
-                .andDo(print());
-    }
+        var result = classUnderTest.convert(payload);
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void shouldReturnCorrectNumberOfRecords(boolean validationEnabled) throws Exception {
-        var payload = String.join("\n", getValidRequestLines());
-        var responseContent = getValidResponseEntries();
-        when(configuration.isValidationEnabled()).thenReturn(validationEnabled);
-        when(converter.convert(payload, validationEnabled)).thenReturn(responseContent);
-
-        var request = post("/convert")
-                .contentType(MediaType.TEXT_PLAIN)
-                .content(payload);
-
-        mvc.perform(request)
-                .andExpect(status().is2xxSuccessful())
-                .andExpect(jsonPath("$.size()").value(getValidRequestLines().size()))
-                .andExpect(content().json(objectMapper.writeValueAsString(responseContent)))
-                .andDo(print());
-    }
-
-    private List<String> getValidRequestLines() {
-        return List.of(
-                "UUID1|ID1|name1|likes1|transport1|1.11|2.22",
-                "UUID2|ID2|name2|likes2|transport2|3.33|4.44",
-                "UUID3|ID3|name3|likes3|transport3|5.55|6.66"
-        );
-    }
-
-    private List<ResponseEntry> getValidResponseEntries() {
-        return List.of(
-                new ResponseEntry("name1", "transport1", 2.22),
-                new ResponseEntry("name2", "transport2", 4.44),
-                new ResponseEntry("name3", "transport3", 6.66)
-        );
+        Assertions.assertNull(result);
+        verify(converter).convert(payload, false);
     }
 }

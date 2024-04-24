@@ -1,5 +1,7 @@
 package com.example.sbjconvert.service;
 
+import com.example.sbjconvert.exception.ApplicationException;
+import com.example.sbjconvert.exception.EmptyPayloadException;
 import com.example.sbjconvert.exception.UnableToParseException;
 import com.example.sbjconvert.model.RequestEntry;
 import com.example.sbjconvert.model.ResponseEntry;
@@ -21,7 +23,10 @@ class PipeSeparatedValueConverter implements Converter {
 
     private final RequestEntryValidator validator;
 
-    public List<ResponseEntry> convert(String payload, boolean failOnError) throws RuntimeException {
+    public List<ResponseEntry> convert(String payload, boolean failOnError) throws ApplicationException {
+        if (payload == null || payload.isEmpty() || payload.isBlank()) {
+            throw new EmptyPayloadException();
+        }
         var reader = createReader();
         var result = new ArrayList<ResponseEntry>();
 

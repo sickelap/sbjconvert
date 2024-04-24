@@ -2,6 +2,7 @@ package com.example.sbjconvert.validator;
 
 import com.example.sbjconvert.model.RequestEntry;
 import lombok.NonNull;
+import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import org.springframework.validation.Validator;
@@ -9,6 +10,7 @@ import org.springframework.validation.Validator;
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class RequestEntryValidator implements Validator {
 
     private static final List<String> stringFields = List.of(

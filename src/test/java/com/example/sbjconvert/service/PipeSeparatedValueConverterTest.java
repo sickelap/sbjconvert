@@ -1,5 +1,6 @@
 package com.example.sbjconvert.service;
 
+import com.example.sbjconvert.exception.EmptyPayloadException;
 import com.example.sbjconvert.exception.UnableToParseException;
 import com.example.sbjconvert.model.ResponseEntry;
 import com.example.sbjconvert.validator.RequestEntryValidator;
@@ -44,7 +45,7 @@ class PipeSeparatedValueConverterTest {
     @Test
     void shouldThrowExceptionWhenPayloadIsInvalid() {
         assertThatThrownBy(() -> classToTest.convert(null, true))
-                .isInstanceOf(UnableToParseException.class);
+                .isInstanceOf(EmptyPayloadException.class);
     }
 
     @Test
