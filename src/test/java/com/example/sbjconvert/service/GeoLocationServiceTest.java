@@ -1,6 +1,7 @@
 package com.example.sbjconvert.service;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,7 @@ class GeoLocationServiceTest {
 
     @BeforeEach
     void setUp() {
-        wireMockServer = new WireMockServer();
+        wireMockServer = new WireMockServer(WireMockConfiguration.options().dynamicPort());
         wireMockServer.start();
         configureFor("localhost", wireMockServer.port());
         classUnderTest = new GeoLocationService();

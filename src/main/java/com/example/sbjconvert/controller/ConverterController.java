@@ -1,6 +1,5 @@
 package com.example.sbjconvert.controller;
 
-import com.example.sbjconvert.annotation.LogExecutionResult;
 import com.example.sbjconvert.model.ResponseEntry;
 import com.example.sbjconvert.service.Converter;
 import com.example.sbjconvert.validator.ValidationConfig;
@@ -21,7 +20,7 @@ public class ConverterController {
     private final ValidationConfig configuration;
 
     @PostMapping
-    @LogExecutionResult
+    // @LogExecutionResult
     public List<ResponseEntry> convert(@RequestBody(required = false) String body) {
         return converter.convert(body, configuration.isValidationEnabled());
     }

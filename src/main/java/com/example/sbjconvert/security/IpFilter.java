@@ -3,6 +3,7 @@ package com.example.sbjconvert.security;
 import com.example.sbjconvert.model.GeoLocationResponse;
 import com.example.sbjconvert.service.GeoLocationConfiguration;
 import com.example.sbjconvert.service.GeoLocationService;
+import com.example.sbjconvert.service.RequestLogService;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,6 +13,9 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+import static com.example.sbjconvert.common.Constants.REQUEST_END_TIME_ATTR;
+import static com.example.sbjconvert.common.Constants.REQUEST_START_TIME_ATTR;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -19,6 +23,7 @@ public class IpFilter implements Filter {
 
     private final GeoLocationService geoLocationService;
     private final GeoLocationConfiguration geoLocationConfiguration;
+    private final RequestLogService requestLogService;
     private boolean skipFilter = false;
 
     @Override
@@ -37,16 +42,29 @@ public class IpFilter implements Filter {
             return;
         }
 
+        // add timestamp here because filter is executed before the request interceptor
+        request.setAttribute(REQUEST_START_TIME_ATTR, System.currentTimeMillis());
+
         var httpResponse = (HttpServletResponse) response;
         var httpRequest = (HttpServletRequest) request;
+
         String ip = httpRequest.getRemoteAddr();
-        ip = "7.7.7.7";
 
         log.info("Checking IP address: {}", ip);
         var geoLocationDetails = geoLocationService.getDetails(ip);
         httpRequest.setAttribute("geoLocationDetails", geoLocationDetails);
+
+        if (geoLocationConfiguration.getAllowedIps().contains(ip)) {
+            log.info("IP address {} is allowed, not logging", ip);
+            return;
+        }
+
         if (isBlocked(geoLocationDetails)) {
-            httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN);
+            httpRequest.setAttribute(REQUEST_END_TIME_ATTR, System.currentTimeMillis());
+            // log request before failing the filter
+            requestLogService.log(httpRequest, httpResponse);
+            return;
         }
 
         chain.doFilter(httpRequest, httpResponse);

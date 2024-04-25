@@ -3,6 +3,7 @@ package com.example.sbjconvert.security;
 import com.example.sbjconvert.model.GeoLocationResponse;
 import com.example.sbjconvert.service.GeoLocationConfiguration;
 import com.example.sbjconvert.service.GeoLocationService;
+import com.example.sbjconvert.service.RequestLogService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +28,9 @@ public class IpFilterTest {
     private GeoLocationConfiguration geoLocationConfiguration;
 
     @Mock
+    private RequestLogService requestLogService;
+
+    @Mock
     private HttpServletRequest request;
 
     @Mock
@@ -40,7 +44,7 @@ public class IpFilterTest {
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
-        ipFilter = new IpFilter(geoLocationService, geoLocationConfiguration);
+        ipFilter = new IpFilter(geoLocationService, geoLocationConfiguration, requestLogService);
     }
 
     @Test
@@ -83,7 +87,7 @@ public class IpFilterTest {
         when(geoLocationService.getDetails(anyString())).thenReturn(geoLocationResponse);
         when(request.getRemoteAddr()).thenReturn("1.1.1.1");
         ipFilter.doFilter(request, response, chain);
-        verify(response, times(1)).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        verify(response, times(1)).sendError(HttpServletResponse.SC_FORBIDDEN);
     }
 
     @Test

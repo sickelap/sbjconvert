@@ -33,5 +33,6 @@ public class LogExecutionResultAspect {
         var request = requestAttrs.getRequest();
         var geoLocationDetails = request.getAttribute("geoLocationDetails");
         log.info("GeoLocation Details: {}", geoLocationDetails);
+        // ....
     }
 }
