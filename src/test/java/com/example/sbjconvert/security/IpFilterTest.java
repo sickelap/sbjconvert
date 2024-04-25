@@ -73,22 +73,17 @@ public class IpFilterTest {
     void testWhenIpIsBlocked() throws Exception {
         GeoLocationResponse geoLocationResponse = new GeoLocationResponse();
         geoLocationResponse.setStatus("success");
+        geoLocationResponse.setCountryCode("US");
+        geoLocationResponse.setIsp("Comcast");
+
+        when(geoLocationConfiguration.getAllowedIps()).thenReturn(Collections.emptyList());
+        when(geoLocationConfiguration.getBlockedCountries()).thenReturn(List.of("US"));
+        when(geoLocationConfiguration.getBlockedProviders()).thenReturn(List.of("Comcast"));
+        when(geoLocationConfiguration.isEnabled()).thenReturn(true);
         when(geoLocationService.getDetails(anyString())).thenReturn(geoLocationResponse);
-        when(geoLocationConfiguration.getAllowedIps()).thenReturn(Collections.emptyList());
+        when(request.getRemoteAddr()).thenReturn("1.1.1.1");
         ipFilter.doFilter(request, response, chain);
-        verify(response, times(1)).sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied");
-    }
-
-    @Test
-    void shouldAllowWhenIpIsInAllowedIps() {
-        when(geoLocationConfiguration.getAllowedIps()).thenReturn(List.of("127.0.0.1"));
-        assertFalse(ipFilter.isBlocked("127.0.0.1"));
-    }
-
-    @Test
-    public void shouldBlockWhenIpIsNotInAllowedIps() {
-        when(geoLocationConfiguration.getAllowedIps()).thenReturn(Collections.emptyList());
-        assertTrue(ipFilter.isBlocked("127.0.0.1"));
+        verify(response, times(1)).setStatus(HttpServletResponse.SC_FORBIDDEN);
     }
 
     @Test
@@ -97,10 +92,10 @@ public class IpFilterTest {
         geoLocationResponse.setIsp("Comcast");
 
         when(geoLocationConfiguration.getBlockedProviders()).thenReturn(Collections.emptyList());
-        assertFalse(ipFilter.isProviderBlocked(geoLocationResponse));
+        assertFalse(ipFilter.isProviderBlocked("Comcast"));
 
         when(geoLocationConfiguration.getBlockedProviders()).thenReturn(List.of("Comcast"));
-        assertTrue(ipFilter.isProviderBlocked(geoLocationResponse));
+        assertTrue(ipFilter.isProviderBlocked("Comcast"));
     }
 
     @Test
@@ -109,9 +104,9 @@ public class IpFilterTest {
         geoLocationResponse.setCountryCode("US");
 
         when(geoLocationConfiguration.getBlockedCountries()).thenReturn(Collections.emptyList());
-        assertFalse(ipFilter.isCountryBlocked(geoLocationResponse));
+        assertFalse(ipFilter.isCountryBlocked("UK"));
 
         when(geoLocationConfiguration.getBlockedCountries()).thenReturn(List.of("US"));
-        assertTrue(ipFilter.isCountryBlocked(geoLocationResponse));
+        assertTrue(ipFilter.isCountryBlocked("US"));
     }
 }

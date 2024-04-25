@@ -37,18 +37,19 @@ public class IpFilter implements Filter {
             return;
         }
 
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        HttpServletResponse httpResponse = (HttpServletResponse) response;
+        var httpResponse = (HttpServletResponse) response;
+        var httpRequest = (HttpServletRequest) request;
         String ip = httpRequest.getRemoteAddr();
+        ip = "7.7.7.7";
 
         log.info("Checking IP address: {}", ip);
-        if (isBlocked(ip)) {
-            httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied");
-            return;
+        var geoLocationDetails = geoLocationService.getDetails(ip);
+        httpRequest.setAttribute("geoLocationDetails", geoLocationDetails);
+        if (isBlocked(geoLocationDetails)) {
+            httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
         }
 
-        log.info("IP access allowed for: {}", ip);
-        chain.doFilter(request, response);
+        chain.doFilter(httpRequest, httpResponse);
     }
 
     @Override
@@ -56,37 +57,33 @@ public class IpFilter implements Filter {
         Filter.super.destroy();
     }
 
-    public boolean isBlocked(String ip) {
-        if (geoLocationConfiguration.getAllowedIps().contains(ip)) {
-            return false;
-        }
-        var geoLocationDetails = geoLocationService.getDetails(ip);
+    public boolean isBlocked(GeoLocationResponse geoLocationDetails) {
         if (geoLocationDetails == null || geoLocationDetails.getStatus().equals("fail")) {
             return true;
         }
-        return isCountryBlocked(geoLocationDetails) || isProviderBlocked(geoLocationDetails);
+        return isCountryBlocked(geoLocationDetails.getCountryCode()) || isProviderBlocked(geoLocationDetails.getIsp());
     }
 
-    boolean isProviderBlocked(GeoLocationResponse geoLocationDetails) {
+    boolean isProviderBlocked(String provider) {
         var blockedProviders = geoLocationConfiguration.getBlockedProviders();
         if (blockedProviders == null || blockedProviders.isEmpty()) {
             return false;
         }
-        var result = blockedProviders.contains(geoLocationDetails.getIsp());
+        var result = blockedProviders.contains(provider);
         if (result) {
-            log.info("Provider {} is blocked", geoLocationDetails.getIsp());
+            log.info("Provider {} is blocked", provider);
         }
         return result;
     }
 
-    boolean isCountryBlocked(GeoLocationResponse geoLocationDetails) {
+    boolean isCountryBlocked(String countryCode) {
         var blockedCountries = geoLocationConfiguration.getBlockedCountries();
         if (blockedCountries == null || blockedCountries.isEmpty()) {
             return false;
         }
-        var result = blockedCountries.contains(geoLocationDetails.getCountryCode());
+        var result = blockedCountries.contains(countryCode);
         if (result) {
-            log.info("Country {} is blocked", geoLocationDetails.getCountryCode());
+            log.info("Country {} is blocked", countryCode);
         }
         return result;
     }
